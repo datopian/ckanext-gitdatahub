@@ -4,7 +4,7 @@ A CKAN extension to write Dataset and Resources's metadata into a git-backed bac
 
 For a glimpse on how a GitHub repository will look like to store metadata information using frictionless data standards checkout: [https://github.com/datasets/](https://github.com/datasets/)
 
-# Requirements
+## Requirements
 
 This extension has been tested and developed using CKAN 2.8.3
 
