@@ -46,6 +46,12 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
                 'Create .gitattributes',
                 ''
                 )
+            git_lfs_server_url = toolkit.config.get('ckanext.gitdatahub.git_lfs_server_url')
+            repo.create_file(
+                '.lfsconfig',
+                'Create .lfsconfig',
+                '[lfs]\nurl = {}'.format(git_lfs_server_url)
+                )            
         except Exception as e:
             log.exception('Cannot create {} repository.'.format(pkg_dict['name']))
 
