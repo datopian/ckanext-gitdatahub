@@ -41,6 +41,11 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
                 'Create datapackage.json',
                 json.dumps(body, indent=2)
                 )
+            repo.create_file(
+                '.gitattributes',
+                'Create .gitattributes',
+                ''
+                )
         except Exception as e:
             log.exception('Cannot create {} repository.'.format(pkg_dict['name']))
 
@@ -64,6 +69,18 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
                 "Update datapackage.json",
                 json.dumps(body, indent=2),
                 contents.sha
+                )
+            
+            gitattributes_body = ''
+            for obj in body['resources']:
+                gitattributes_body += "data/{} filter=lfs diff=lfs merge=lfs -text\n".format(obj['title'])
+            
+            contents = repo.get_contents(".gitattributes")
+            repo.update_file(
+                contents.path,
+                "Update .gitattributes",
+                gitattributes_body,
+                contents.sha,
                 )
         except Exception as e:
             log.exception('Cannot update {} repository.'.format(pkg_dict['name']))
