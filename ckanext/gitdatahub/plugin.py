@@ -95,7 +95,6 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
                         "Create LfsPointerFile",
                         lfs_pointer_body,
                         )   
-
             contents = repo.get_contents(".gitattributes")
             repo.update_file(
                 contents.path,
