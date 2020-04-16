@@ -4,7 +4,8 @@ import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 
 from ckanapi.datapackage import dataset_to_datapackage
-from github import Github
+from github import Github, GithubException
+import hashlib
 
 log = logging.getLogger(__name__)
 
@@ -77,11 +78,24 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
                 json.dumps(body, indent=2),
                 contents.sha
                 )
-            
+            try:
+                lfs_pointers = [obj.name for obj in repo.get_contents("data")]
+            except GithubException as e:
+                lfs_pointers = list()
+
             gitattributes_body = ''
-            for obj in body['resources']:
+            for index, obj in enumerate(body['resources']):
                 gitattributes_body += "data/{} filter=lfs diff=lfs merge=lfs -text\n".format(obj['title'])
-            
+                if obj['title'] not in lfs_pointers:
+                    sha256 = pkg_dict['resources'][index]['id']
+                    size = pkg_dict['resources'][index]['size']
+                    lfs_pointer_body ='version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(sha256, size)
+                    repo.create_file(
+                        "data/{}".format(obj['title']),
+                        "Create LfsPointerFile",
+                        lfs_pointer_body,
+                        )   
+
             contents = repo.get_contents(".gitattributes")
             repo.update_file(
                 contents.path,
@@ -89,6 +103,7 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
                 gitattributes_body,
                 contents.sha,
                 )
+
         except Exception as e:
             log.exception('Cannot update {} repository.'.format(pkg_dict['name']))
 
