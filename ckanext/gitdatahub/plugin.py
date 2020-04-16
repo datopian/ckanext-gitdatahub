@@ -5,7 +5,6 @@ import ckan.plugins.toolkit as toolkit
 
 from ckanapi.datapackage import dataset_to_datapackage
 from github import Github, UnknownObjectException
-import hashlib
 
 log = logging.getLogger(__name__)
 
@@ -77,23 +76,34 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
                 "Update datapackage.json",
                 json.dumps(body, indent=2),
                 contents.sha
-                )
+                ) 
             try:
                 lfs_pointers = [obj.name for obj in repo.get_contents("data")]
+                lfs_pointers = {obj:str(repo.get_contents("data/{}".format(obj)).decoded_content).split('\n')[1].split(':')[-1] for obj in lfs_pointers}
             except UnknownObjectException as e:
                 lfs_pointers = list()
-
             gitattributes_body = ''
-            for index, obj in enumerate(body['resources']):
-                gitattributes_body += "data/{} filter=lfs diff=lfs merge=lfs -text\n".format(obj['title'])
-                if obj['title'] not in lfs_pointers:
-                    sha256 = pkg_dict['resources'][index]['id']
-                    size = pkg_dict['resources'][index]['size']
+            for obj in pkg_dict['resources']:
+                gitattributes_body += "data/{} filter=lfs diff=lfs merge=lfs -text\n".format(obj['name'])
+                if obj['name'] not in lfs_pointers.keys():
+                    sha256 = obj['sha256']
+                    size = obj['size']
                     lfs_pointer_body ='version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(sha256, size)
                     repo.create_file(
-                        "data/{}".format(obj['title']),
+                        "data/{}".format(obj['name']),
                         "Create LfsPointerFile",
                         lfs_pointer_body,
+                        )
+                elif obj['sha256'] != lfs_pointers[obj['name']]:
+                    contents = repo.get_contents("data/{}".format(obj['name']))
+                    sha256 = obj['sha256']
+                    size = obj['size']
+                    lfs_pointer_body ='version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(sha256, size)
+                    repo.update_file(
+                        contents.path,
+                        "Update LfsPointerFile",
+                        lfs_pointer_body,
+                        contents.sha
                         )   
             contents = repo.get_contents(".gitattributes")
             repo.update_file(
