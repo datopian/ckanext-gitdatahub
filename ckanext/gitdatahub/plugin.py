@@ -4,7 +4,7 @@ import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 
 from ckanapi.datapackage import dataset_to_datapackage
-from github import Github, GithubException
+from github import Github, UnknownObjectException
 import hashlib
 
 log = logging.getLogger(__name__)
@@ -80,7 +80,7 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
                 )
             try:
                 lfs_pointers = [obj.name for obj in repo.get_contents("data")]
-            except GithubException as e:
+            except UnknownObjectException as e:
                 lfs_pointers = list()
 
             gitattributes_body = ''
