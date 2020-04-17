@@ -1,10 +1,9 @@
-import json
 import logging
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
 
-from ckanapi.datapackage import dataset_to_datapackage
 from github import Github, UnknownObjectException
+from ckanext.gitdatahub.src.ckan_to_git import *
 
 log = logging.getLogger(__name__)
 
@@ -35,24 +34,17 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
             g = Github(token)
             auth_user = g.get_user()
             repo = auth_user.create_repo(pkg_dict['name'], pkg_dict['notes'])
-            body = dataset_to_datapackage(pkg_dict)
-            repo.create_file(
-                'datapackage.json',
-                'Create datapackage.json',
-                json.dumps(body, indent=2)
-                )
-            repo.create_file(
-                '.gitattributes',
-                'Create .gitattributes',
-                ''
-                )
+            
+            # Create the datapackage
+            create_datapackage(pkg_dict, repo)
+            
+            # Create the gitattributes            
+            create_gitattributes(repo)
+            
+            # Create the lfscomfig
             git_lfs_server_url = toolkit.config.get('ckanext.gitdatahub.git_lfs_server_url')
-            repoUrl = '{}/{}/{}'.format(git_lfs_server_url,auth_user.html_url.split('/')[-1],pkg_dict['name'])
-            repo.create_file(
-                '.lfsconfig',
-                'Create .lfsconfig',
-                '[remote "origin"]\n\tlfsurl = ' + repoUrl
-                )            
+            create_lfsconfig(pkg_dict, repo, auth_user, git_lfs_server_url)
+        
         except Exception as e:
             log.exception('Cannot create {} repository.'.format(pkg_dict['name']))
 
@@ -65,56 +57,32 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
             {'id': pkg_dict['id']}
         )
         token = toolkit.config.get('ckanext.gitdatahub.access_token')
+
         try:
             g = Github(token)
             auth_user = g.get_user()
             repo = auth_user.get_repo(pkg_dict['name'])
-            contents = repo.get_contents("datapackage.json")
-            body = dataset_to_datapackage(pkg_dict)
-            repo.update_file(
-                contents.path,
-                "Update datapackage.json",
-                json.dumps(body, indent=2),
-                contents.sha
-                ) 
-            try:
-                lfs_pointers = [obj.name for obj in repo.get_contents("data")]
-                lfs_pointers = {obj:str(repo.get_contents("data/{}".format(obj)).decoded_content).split('\n')[1].split(':')[-1] for obj in lfs_pointers}
-            except UnknownObjectException as e:
-                lfs_pointers = list()
-            gitattributes_body = ''
-            for obj in pkg_dict['resources']:
-                gitattributes_body += "data/{} filter=lfs diff=lfs merge=lfs -text\n".format(obj['name'])
-                if obj['name'] not in lfs_pointers.keys():
-                    sha256 = obj['sha256']
-                    size = obj['size']
-                    lfs_pointer_body ='version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(sha256, size)
-                    repo.create_file(
-                        "data/{}".format(obj['name']),
-                        "Create LfsPointerFile",
-                        lfs_pointer_body,
-                        )
-                elif obj['sha256'] != lfs_pointers[obj['name']]:
-                    contents = repo.get_contents("data/{}".format(obj['name']))
-                    sha256 = obj['sha256']
-                    size = obj['size']
-                    lfs_pointer_body ='version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(sha256, size)
-                    repo.update_file(
-                        contents.path,
-                        "Update LfsPointerFile",
-                        lfs_pointer_body,
-                        contents.sha
-                        )   
-            contents = repo.get_contents(".gitattributes")
-            repo.update_file(
-                contents.path,
-                "Update .gitattributes",
-                gitattributes_body,
-                contents.sha,
-                )
-
+        
+            # Update the datapackage
+            update_datapackage(pkg_dict, repo)
+        
         except Exception as e:
             log.exception('Cannot update {} repository.'.format(pkg_dict['name']))
+        
+        # Create/Update the lfs pointers
+        try:
+            lfs_pointers = [obj.name for obj in repo.get_contents("data")]
+            lfs_pointers = {obj:get_sha256(obj, repo) for obj in lfs_pointers}
+        
+        except UnknownObjectException as e:
+            lfs_pointers = dict()
+        
+        for obj in pkg_dict['resources']:
+            if obj['name'] not in lfs_pointers.keys():
+                create_lfspointerfile(repo, obj)
+        
+            elif obj['sha256'] != lfs_pointers[obj['name']]:
+                update_lfspointerfile(repo, obj)
 
     def delete(self, entity):
         token = toolkit.config.get('ckanext.gitdatahub.access_token')
@@ -122,8 +90,13 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
             g = Github(token)
             auth_user = g.get_user()
             repo = auth_user.get_repo(entity.name)
+        
             # Commented because dangerous to use with personal token
             repo.delete()
             log.info("{} repository deleted.".format(entity.name))
+        
         except Exception as e:
             log.exception('Cannot delete {} repository.'.format(entity.name))
+
+def get_sha256(lfspointerfile, repo):
+    return str(repo.get_contents("data/{}".format(lfspointerfile)).decoded_content).split('\n')[1].split(':')[-1]
