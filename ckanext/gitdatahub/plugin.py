@@ -1,9 +1,7 @@
 import logging
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
-
-from github import Github, UnknownObjectException
-from src.ckan_to_git import *
+from ckanext.gitdatahub.src.ckan_to_git import CKANGitClient
 
 log = logging.getLogger(__name__)
 
@@ -30,20 +28,18 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
     def after_create(self, context, pkg_dict):
         token = toolkit.config.get('ckanext.gitdatahub.access_token')
         try:
-            g = Github(token)
-            auth_user = g.get_user()
-            repo = auth_user.create_repo(pkg_dict['name'], pkg_dict['notes'])
-
+            client = CKANGitClient(token, pkg_dict)
+            
             # Create the datapackage
-            create_datapackage(pkg_dict, repo)
-
-            # Create the gitattributes
-            create_gitattributes(repo)
-
+            client.create_datapackage()
+            
+            # Create the gitattributes            
+            client.create_gitattributes()
+            
             # Create the lfscomfig
             git_lfs_server_url = toolkit.config.get('ckanext.gitdatahub.git_lfs_server_url')
-            create_lfsconfig(pkg_dict, repo, auth_user, git_lfs_server_url)
-
+            client.create_lfsconfig(git_lfs_server_url)
+        
         except Exception as e:
             log.exception('Cannot create {} repository.'.format(pkg_dict['name']))
 
@@ -54,43 +50,25 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
             {'id': pkg_dict['id']}
         )
         token = toolkit.config.get('ckanext.gitdatahub.access_token')
-
         try:
-            g = Github(token)
-            auth_user = g.get_user()
-            repo = auth_user.get_repo(pkg_dict['name'])
-
+            client = CKANGitClient(token, pkg_dict)
+        
             # Update the datapackage
-            update_datapackage(pkg_dict, repo)
-
+            client.update_datapackage()
+        
         except Exception as e:
             log.exception('Cannot update {} repository.'.format(pkg_dict['name']))
 
         # Create/Update the lfs pointers
-        try:
-            lfs_pointers = [obj.name for obj in repo.get_contents("data")]
-            lfs_pointers = {obj:get_sha256(obj, repo) for obj in lfs_pointers}
-
-        except UnknownObjectException as e:
-            lfs_pointers = dict()
-
-        for obj in pkg_dict['resources']:
-            if obj['name'] not in lfs_pointers.keys():
-                create_lfspointerfile(repo, obj)
-
-            elif obj['sha256'] != lfs_pointers[obj['name']]:
-                update_lfspointerfile(repo, obj)
+        client.create_or_update_lfspointerfile()
 
     def delete(self, entity):
         token = toolkit.config.get('ckanext.gitdatahub.access_token')
         try:
-            g = Github(token)
-            auth_user = g.get_user()
-            repo = auth_user.get_repo(entity.name)
-            repo.delete()
-            log.info("{} repository deleted.".format(entity.name))
+            client = CKANGitClient(token, entity=entity.name)
+            # Commented because dangerous to use with personal token
+            client.delete_repo()
+        
         except Exception as e:
             log.exception('Cannot delete {} repository.'.format(entity.name))
 
-def get_sha256(lfspointerfile, repo):
-    return str(repo.get_contents("data/{}".format(lfspointerfile)).decoded_content).split('\n')[1].split(':')[-1]
