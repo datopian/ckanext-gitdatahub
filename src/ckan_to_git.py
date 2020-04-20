@@ -22,7 +22,7 @@ def create_lfsconfig(pkg_dict, repo, auth_user, git_lfs_server_url):
         '.lfsconfig',
         'Create .lfsconfig',
         '[remote "origin"]\n\tlfsurl = ' + repoUrl
-        )    
+        )
 
 def update_datapackage(pkg_dict, repo):
     contents = repo.get_contents("datapackage.json")
@@ -37,18 +37,18 @@ def update_datapackage(pkg_dict, repo):
 def create_lfspointerfile(repo, obj):
     sha256 = obj['sha256']
     size = obj['size']
-    lfs_pointer_body ='version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(sha256, size)
+    lfs_pointer_body = 'version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(sha256, size)
     repo.create_file(
-    "data/{}".format(obj['name']),
-    "Create LfsPointerFile",
-    lfs_pointer_body,
+        "data/{}".format(obj['name']),
+        "Create LfsPointerFile",
+        lfs_pointer_body,
     )
 
 def update_lfspointerfile(repo, obj):
     contents = repo.get_contents("data/{}".format(obj['name']))
     sha256 = obj['sha256']
     size = obj['size']
-    lfs_pointer_body ='version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(sha256, size)
+    lfs_pointer_body = 'version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(sha256, size)
     repo.update_file(
         contents.path,
         "Update LfsPointerFile",
