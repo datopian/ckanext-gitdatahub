@@ -77,7 +77,7 @@ class CKANGitClient:
     def create_or_update_lfspointerfile(self):
         if not self.pkg_dict:
             return
-        import pdb; pdb.set_trace()
+
         try:
             lfs_pointers = [obj.name for obj in self.repo.get_contents("data")]
             lfs_pointers = {obj:self.get_sha256(obj) for obj in lfs_pointers}
@@ -120,5 +120,11 @@ class CKANGitClient:
             )
     
     def delete_repo(self):
-        self.repo.delete()
-        log.info("{} repository deleted.".format(self.repo.name))
+        try:
+            self.repo.delete()
+            log.info("{} repository deleted.".format(self.repo.name))
+            return True
+       
+        except Exception as e:
+            log.info("{} repository is deleted.".format(self.repo.name))
+            return False

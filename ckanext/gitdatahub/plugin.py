@@ -1,7 +1,7 @@
 import logging
 import ckan.plugins as plugins
 import ckan.plugins.toolkit as toolkit
-from ckanext.gitdatahub.src.ckan_to_git import CKANGitClient
+from src.ckan_to_git import CKANGitClient
 
 log = logging.getLogger(__name__)
 
