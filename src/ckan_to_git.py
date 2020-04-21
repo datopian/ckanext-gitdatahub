@@ -126,5 +126,4 @@ class CKANGitClient:
             return True
        
         except Exception as e:
-            log.info("{} repository is deleted.".format(self.repo.name))
             return False
