@@ -18,6 +18,7 @@ class CKANGitClient:
             repo_notes = None
         else:
             repo_name = pkg_dict['name']
+            # TODO: Review this key
             repo_notes = pkg_dict['notes']
 
         self.repo = self.get_or_create_repo(repo_name, repo_notes)
@@ -81,6 +82,7 @@ class CKANGitClient:
             return
 
         try:
+            # TODO: Refactor this using LFSPointer objects
             lfs_pointers = [obj.name for obj in self.repo.get_contents("data")]
             lfs_pointers = {obj:self.get_sha256(obj) for obj in lfs_pointers}
 
@@ -95,7 +97,9 @@ class CKANGitClient:
                 self.update_lfspointerfile(obj)
 
     def get_sha256(self, lfspointerfile):
-        return str(self.repo.get_contents("data/{}".format(lfspointerfile)).decoded_content).split('\n')[1].split(':')[-1]
+        file_path = "data/{}".format(lfspointerfile)
+        file_content = self.repo.get_contents(file_path).decoded_content
+        return str(file_content).split('\n')[1].split(':')[-1]
 
     def create_lfspointerfile(self, obj):
         sha256 = obj['sha256']

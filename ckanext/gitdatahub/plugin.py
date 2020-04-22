@@ -21,31 +21,27 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
             msg = 'ckanext.gitdatahub.access_token is missing from config file'
             raise GitDataHubException(msg)
 
+
     def update_config(self, config_):
         toolkit.add_template_directory(config_, 'templates')
         toolkit.add_public_directory(config_, 'public')
         toolkit.add_resource('fanstatic', 'gitdatahub')
 
+
     def after_create(self, context, pkg_dict):
         token = toolkit.config.get('ckanext.gitdatahub.access_token')
+        git_lfs_server_url = toolkit.config.get('ckanext.gitdatahub.git_lfs_server_url')
         try:
             client = CKANGitClient(token, pkg_dict)
-
-            # Create the datapackage
             client.create_datapackage()
-
-            # Create the gitattributes
             client.create_gitattributes()
-
-            # Create the lfscomfig
-            git_lfs_server_url = toolkit.config.get('ckanext.gitdatahub.git_lfs_server_url')
             client.create_lfsconfig(git_lfs_server_url)
-
         except Exception as e:
             log.exception('Cannot create {} repository.'.format(pkg_dict['name']))
 
+
     def after_update(self, context, pkg_dict):
-        # Get a complete dict to also save resources data.
+        # We need to get a complete dict to also update resources data.
         pkg_dict = toolkit.get_action('package_show')(
             {},
             {'id': pkg_dict['id']}
@@ -53,15 +49,12 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
         token = toolkit.config.get('ckanext.gitdatahub.access_token')
         try:
             client = CKANGitClient(token, pkg_dict)
-
-            # Update the datapackage
             client.update_datapackage()
-
         except Exception as e:
             log.exception('Cannot update {} repository.'.format(pkg_dict['name']))
 
-        # Create/Update the lfs pointers
         client.create_or_update_lfspointerfile()
+
 
     def before_delete(self, context, resource, resources):
         for obj in resources:
@@ -77,9 +70,9 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
         try:
             client = CKANGitClient(token, dataset_name=pkg_dict['name'] ,resource_name=resource_dict['name'])
             client.delete_lfspointerfile()
-
         except Exception as e:
             log.exception('Cannot delete {} lfspointerfile.'.format(resource_dict['name']))
+
 
     def after_delete(self, context, resources):
         if resources:
@@ -89,21 +82,18 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
             )
             token = toolkit.config.get('ckanext.gitdatahub.access_token')
             try:
-                #Checking whether the resoource is deleted from the database
-                #And there is no difference between the lfspointerfiles in repo and resouces in database
+                # Checking whether the resoource is deleted from the database
+                # And there is no difference between the lfspointerfiles in repo and resouces in database
                 client = CKANGitClient(token, dataset_name=pkg_dict['name'], resources=resources)
                 client.check_after_delete()
-
             except Exception as e:
                 log.exception('Cannot perfrom after_delete check .')
+
 
     def delete(self, entity):
         token = toolkit.config.get('ckanext.gitdatahub.access_token')
         try:
             client = CKANGitClient(token, dataset_name=entity.name)
-            # Commented because dangerous to use with personal token
             client.delete_repo()
-
         except Exception as e:
             log.exception('Cannot delete {} repository.'.format(entity.name))
-
