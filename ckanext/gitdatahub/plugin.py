@@ -9,10 +9,9 @@ class GitDataHubException(Exception):
     pass
 
 
-class GitdatahubPlugin(plugins.SingletonPlugin):
+class PackageGitdatahubPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IConfigurer)
     plugins.implements(plugins.IPackageController, inherit=True)
-    plugins.implements(plugins.IResourceController, inherit=True)
 
     # IConfigurer
     def configure(self, config):
@@ -56,6 +55,18 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
         client.create_or_update_lfspointerfile()
 
 
+    def delete(self, entity):
+        token = toolkit.config.get('ckanext.gitdatahub.access_token')
+        try:
+            client = CKANGitClient(token, dataset_name=entity.name)
+            client.delete_repo()
+        except Exception as e:
+            log.exception('Cannot delete {} repository.'.format(entity.name))
+
+
+class ResourceGitdatahubPlugin(plugins.SingletonPlugin):
+    plugins.implements(plugins.IResourceController, inherit=True)
+
     def before_delete(self, context, resource, resources):
         for obj in resources:
             if obj['id'] == resource['id']:
@@ -88,12 +99,3 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
                 client.check_after_delete()
             except Exception as e:
                 log.exception('Cannot perfrom after_delete check .')
-
-
-    def delete(self, entity):
-        token = toolkit.config.get('ckanext.gitdatahub.access_token')
-        try:
-            client = CKANGitClient(token, dataset_name=entity.name)
-            client.delete_repo()
-        except Exception as e:
-            log.exception('Cannot delete {} repository.'.format(entity.name))

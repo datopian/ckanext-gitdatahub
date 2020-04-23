@@ -21,7 +21,7 @@ setup(
     long_description=long_description,
 
     # The project's main homepage.
-    url='https://github.com/pdelboca/ckanext-gitdatahub',
+    url='https://github.com/datopian/ckanext-gitdatahub',
 
     # Author details
     author='''Patricio Del Boca''',
@@ -80,7 +80,8 @@ setup(
     # pip to create the appropriate form of executable for the target platform.
     entry_points='''
         [ckan.plugins]
-        gitdatahub=ckanext.gitdatahub.plugin:GitdatahubPlugin
+        gitdatahub_package=ckanext.gitdatahub.plugin:PackageGitdatahubPlugin
+        gitdatahub_resource=ckanext.gitdatahub.plugin:ResourceGitdatahubPlugin
 
         [babel.extractors]
         ckan = ckan.lib.extract:extract_ckan
