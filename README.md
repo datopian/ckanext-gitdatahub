@@ -19,7 +19,7 @@ To install ckanext-gitdatahub:
 
      `pip install ckanext-gitdatahub`
 
-3. Add `gitdatahub` to the `ckan.plugins` setting in your CKAN
+3. Add `gitdatahub_package gitdatahub_resource` to the `ckan.plugins` setting in your CKAN
    config file (by default the config file is located at
    `/etc/ckan/default/production.ini`).
 
