@@ -68,8 +68,8 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
         )
         token = toolkit.config.get('ckanext.gitdatahub.access_token')
         try:
-            client = CKANGitClient(token, dataset_name=pkg_dict['name'] ,resource_name=resource_dict['name'])
-            client.delete_lfspointerfile()
+            client = CKANGitClient(token, dataset_name=pkg_dict['name'])
+            client.delete_lfspointerfile(resource_dict['name'])
         except Exception as e:
             log.exception('Cannot delete {} lfspointerfile.'.format(resource_dict['name']))
 
@@ -82,15 +82,16 @@ class GitdatahubPlugin(plugins.SingletonPlugin):
             )
             token = toolkit.config.get('ckanext.gitdatahub.access_token')
             try:
-                # Checking whether the resoource is deleted from the database
-                # And there is no difference between the lfspointerfiles in repo and resouces in database
-                client = CKANGitClient(token, dataset_name=pkg_dict['name'], resources=resources)
-                client.check_after_delete()
+                #Checking whether the resoource is deleted from the database
+                #And there is no difference between the lfspointerfiles in repo and resouces in database
+                client = CKANGitClient(token, dataset_name=pkg_dict['name'])
+                client.check_after_delete(resources)
             except Exception as e:
                 log.exception('Cannot perfrom after_delete check .')
 
 
     def delete(self, entity):
+        return
         token = toolkit.config.get('ckanext.gitdatahub.access_token')
         try:
             client = CKANGitClient(token, dataset_name=entity.name)

@@ -6,12 +6,10 @@ from ckanapi.datapackage import dataset_to_datapackage
 log = logging.getLogger(__name__)
 
 class CKANGitClient:
-    def __init__(self, token, pkg_dict=None, dataset_name=None, resource_name=None, resources=None):
+    def __init__(self, token, pkg_dict=None, dataset_name=None):
         g = Github(token)
         self.auth_user = g.get_user()
         self.pkg_dict = pkg_dict
-        self.resource_name = resource_name
-        self.resources = resources
 
         if not pkg_dict:
             repo_name = dataset_name
@@ -125,21 +123,33 @@ class CKANGitClient:
             contents.sha
             )
 
-    def delete_lfspointerfile(self):
-        contents = self.repo.get_contents("data/{}".format(self.resource_name))
-        self.repo.delete_file(
-            contents.path,
-            "remove lfspointerfile",
-            contents.sha)
+    def delete_lfspointerfile(self, resource_name):
+        try:
+            contents = self.repo.get_contents("data/{}".format(resource_name))
+            self.repo.delete_file(
+                contents.path,
+                "remove lfspointerfile",
+                contents.sha)
+            log.info("{} lfspointer is deleted.".format(resource_name))
+            return True
 
-    def check_after_delete(self):
-        contents = self.repo.get_contents("data/")
-        if len(self.resources) > len(contents):
+        except Exception as e:
+            return False
+
+    def check_after_delete(self, resources):
+        try:
+            contents = self.repo.get_contents("data/")
+
+        except UnknownObjectException as e:
+            contents = []
+
+        if len(resources) > len(contents):
             contents_name = [obj.name for obj in contents]
-
             for obj in resources:
                 if obj['name'] not in contents_name:
                     self.create_lfspointerfile(obj)
+            return True
+        return False
 
     def delete_repo(self):
         try:
