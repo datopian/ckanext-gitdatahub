@@ -6,18 +6,14 @@ from ckanapi.datapackage import dataset_to_datapackage
 log = logging.getLogger(__name__)
 
 class CKANGitClient:
-    def __init__(self, token, pkg_dict=None, dataset_name=None):
+    def __init__(self, token, pkg_dict):
         g = Github(token)
         self.auth_user = g.get_user()
         self.pkg_dict = pkg_dict
 
-        if not pkg_dict:
-            repo_name = dataset_name
-            repo_notes = None
-        else:
-            repo_name = pkg_dict['name']
-            # TODO: Review this key
-            repo_notes = pkg_dict['notes']
+        repo_name = pkg_dict['name']
+        # TODO: Review this key
+        repo_notes = pkg_dict['notes']
 
         self.repo = self.get_or_create_repo(repo_name, repo_notes)
 
@@ -31,9 +27,6 @@ class CKANGitClient:
         return repo
 
     def create_datapackage(self):
-        if not self.pkg_dict:
-            return
-
         body = dataset_to_datapackage(self.pkg_dict)
         self.repo.create_file(
             'datapackage.json',
@@ -42,9 +35,6 @@ class CKANGitClient:
             )
 
     def create_gitattributes(self):
-        if not self.pkg_dict:
-            return
-
         self.repo.create_file(
         '.gitattributes',
         'Create .gitattributes',
@@ -52,9 +42,6 @@ class CKANGitClient:
         )
 
     def create_lfsconfig(self, git_lfs_server_url):
-        if not self.pkg_dict:
-            return
-
         repoUrl = '{}/{}/{}'.format(git_lfs_server_url,self.auth_user.html_url.split('/')[-1],self.pkg_dict['name'])
         self.repo.create_file(
             '.lfsconfig',
@@ -63,9 +50,6 @@ class CKANGitClient:
             )
 
     def update_datapackage(self):
-        if not self.pkg_dict:
-            return
-
         contents = self.repo.get_contents("datapackage.json")
         body = dataset_to_datapackage(self.pkg_dict)
         self.repo.update_file(
@@ -76,9 +60,6 @@ class CKANGitClient:
             )
 
     def create_or_update_lfspointerfile(self):
-        if not self.pkg_dict:
-            return
-
         try:
             # TODO: Refactor this using LFSPointer objects
             lfs_pointers = [obj.name for obj in self.repo.get_contents("data")]
