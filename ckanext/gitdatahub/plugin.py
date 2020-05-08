@@ -84,7 +84,8 @@ class ResourceGitdatahubPlugin(plugins.SingletonPlugin):
         token = toolkit.config.get('ckanext.gitdatahub.access_token')
         try:
             client = CKANGitClient(token, pkg_dict)
-            client.delete_lfspointerfile(resource_dict['name'])
+            lfspointer_name = resource_dict['id']+ '.' + resource_dict['format']
+            client.delete_lfspointerfile(lfspointer_name)
         except Exception as e:
             log.exception('Cannot delete {} lfspointerfile.'.format(resource_dict['name']))
 
