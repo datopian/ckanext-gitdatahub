@@ -54,7 +54,7 @@ class Test:
                 'id': 'cc82cc39-3e66-4f77-bb34-fc90566fc612', 'size': 1024, 'sha256': '1234'}
         client.create_lfspointerfile(obj)
 
-        lfspointer_name = obj['id']+ '.' + obj['format']
+        lfspointer_name = obj['id'] + '.' + obj['format']
         repo_file_contents = client.repo.get_contents("data/{}".format(lfspointer_name)).decoded_content
         lfs_pointer_body = bytes('version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(obj['sha256'], obj['size']), 'UTF-8')
 
@@ -67,7 +67,7 @@ class Test:
                 'id': 'cc82cc39-3e66-4f77-bb34-fc90566fc612', 'size': 1024, 'sha256': '4321'}
         client.update_lfspointerfile(obj)
 
-        lfspointer_name = obj['id']+ '.' + obj['format']
+        lfspointer_name = obj['id'] + '.' + obj['format']
         repo_file_contents = client.repo.get_contents("data/{}".format(lfspointer_name)).decoded_content
         lfs_pointer_body = bytes('version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(obj['sha256'], obj['size']), 'UTF-8')
 
@@ -95,7 +95,7 @@ class Test:
                 'format': 'CSV', 'url': 'testing_resource.csv', 'name': 'testing_resource.csv', 'package_id': 'cee102b6-9e67-41b2-9558-46c9fe8fbe34',
                 'last_modified': datetime.datetime(2020, 4, 19, 12, 15, 48, 33024), 'url_type': 'upload',
                 'id': 'cc82cc39-3e66-4f77-bb34-fc90566fc612', 'size': 1024, 'sha256': '1234'}
-        lfspointer_name = obj['id']+ '.' + obj['format']
+        lfspointer_name = obj['id'] + '.' + obj['format']
 
         assert client.delete_lfspointerfile(lfspointer_name) == True
 

@@ -69,7 +69,7 @@ class CKANGitClient:
             lfs_pointers = dict()
 
         for obj in self.pkg_dict['resources']:
-            lfspointer_name = obj['id']+ '.' + obj['format']
+            lfspointer_name = obj['id'] + '.' + obj['format']
 
             if lfspointer_name not in lfs_pointers.keys():
                 self.create_lfspointerfile(obj)
@@ -86,7 +86,7 @@ class CKANGitClient:
         sha256 = obj['sha256']
         size = obj['size']
         lfs_pointer_body = 'version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(sha256, size)
-        lfspointer_name = obj['id']+ '.' + obj['format']
+        lfspointer_name = obj['id'] + '.' + obj['format']
 
         self.repo.create_file(
         "data/{}".format(lfspointer_name),
@@ -95,7 +95,7 @@ class CKANGitClient:
         )
 
     def update_lfspointerfile(self, obj):
-        lfspointer_name = obj['id']+ '.' + obj['format']
+        lfspointer_name = obj['id'] + '.' + obj['format']
         contents = self.repo.get_contents("data/{}".format(lfspointer_name))
         sha256 = obj['sha256']
         size = obj['size']
