@@ -71,11 +71,12 @@ class CKANGitClient:
         for obj in self.pkg_dict['resources']:
             lfspointer_name = obj['id'] + '.' + obj['format']
 
-            if lfspointer_name not in lfs_pointers.keys():
-                self.create_lfspointerfile(obj)
+            if obj['url_type'] == 'upload':
+                if lfspointer_name not in lfs_pointers.keys():
+                    self.create_lfspointerfile(obj)
 
-            elif obj['sha256'] != lfs_pointers[lfspointer_name]:
-                self.update_lfspointerfile(obj)
+                elif obj['sha256'] != lfs_pointers[lfspointer_name]:
+                    self.update_lfspointerfile(obj)
 
     def get_sha256(self, lfspointer_name):
         file_path = "data/{}".format(lfspointer_name)
