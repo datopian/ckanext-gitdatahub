@@ -1,7 +1,7 @@
 import json
 import logging
 from github import Github, UnknownObjectException
-from ckanapi.datapackage import dataset_to_datapackage
+import ckan_datapackage_tools.converter as converter
 
 log = logging.getLogger(__name__)
 
@@ -27,7 +27,7 @@ class CKANGitClient:
         return repo
 
     def create_datapackage(self):
-        body = dataset_to_datapackage(self.pkg_dict)
+        body = converter.dataset_to_datapackage(self.pkg_dict)
         self.repo.create_file(
             'datapackage.json',
             'Create datapackage.json',
@@ -51,7 +51,7 @@ class CKANGitClient:
 
     def update_datapackage(self):
         contents = self.repo.get_contents("datapackage.json")
-        body = dataset_to_datapackage(self.pkg_dict)
+        body = converter.dataset_to_datapackage(self.pkg_dict)
         self.repo.update_file(
             contents.path,
             "Update datapackage.json",

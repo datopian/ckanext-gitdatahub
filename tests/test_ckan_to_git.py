@@ -1,9 +1,8 @@
 import json
 import datetime
-from ckanapi.datapackage import dataset_to_datapackage
 from src.ckan_to_git import CKANGitClient
 import ckan.plugins.toolkit as toolkit
-
+import ckan_datapackage_tools.converter as converter
 from github import Github
 
 
@@ -23,7 +22,7 @@ class Test:
     def test_create_datapackage(self):
         client.create_datapackage()
 
-        body = dataset_to_datapackage(pkg_dict)
+        body = converter.dataset_to_datapackage(pkg_dict)
         repo_file_contents = client.repo.get_contents("datapackage.json").decoded_content
         datapackage_body = bytes(json.dumps(body, indent=2), 'UTF-8')
 
@@ -68,7 +67,7 @@ class Test:
     def test_update_datapackage(self):
         client.update_datapackage()
 
-        body = dataset_to_datapackage(pkg_dict)
+        body = converter.dataset_to_datapackage(pkg_dict)
         repo_file_contents = client.repo.get_contents("datapackage.json").decoded_content
         datapackage_body = bytes(json.dumps(body, indent=2), 'UTF-8')
 
