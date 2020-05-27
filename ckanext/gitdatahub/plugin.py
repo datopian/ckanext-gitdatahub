@@ -52,8 +52,6 @@ class PackageGitdatahubPlugin(plugins.SingletonPlugin):
         except Exception as e:
             log.exception('Cannot update {} repository.'.format(pkg_dict['name']))
 
-        client.create_or_update_lfspointerfile()
-
 
     def delete(self, entity):
         pkg_dict = toolkit.get_action('package_show')(
@@ -71,6 +69,34 @@ class PackageGitdatahubPlugin(plugins.SingletonPlugin):
 class ResourceGitdatahubPlugin(plugins.SingletonPlugin):
     plugins.implements(plugins.IResourceController, inherit=True)
 
+    def after_create(self, context, resource):
+        pkg_dict = toolkit.get_action('package_show')(
+            {},
+            {'id': resource['package_id']}
+        )
+        token = toolkit.config.get('ckanext.gitdatahub.access_token')
+        try:
+            client = CKANGitClient(token, pkg_dict)
+            if resource['url_type'] == 'upload':
+                client.create_lfspointerfile(resource)
+
+        except Exception as e:
+            log.exception('Cannot create {} lfspointerfile.'.format(resource['name']))
+
+
+    def after_update(self, context, resource):
+        pkg_dict = toolkit.get_action('package_show')(
+            {},
+            {'id': resource['package_id']}
+        )
+        token = toolkit.config.get('ckanext.gitdatahub.access_token')
+        try:
+            client = CKANGitClient(token, pkg_dict)
+            client.update_lfspointerfile(resource)
+        except Exception as e:
+            log.exception('Cannot update {} lfspointerfile.'.format(resource['name']))
+
+
     def before_delete(self, context, resource, resources):
         for obj in resources:
             if obj['id'] == resource['id']:
@@ -84,8 +110,7 @@ class ResourceGitdatahubPlugin(plugins.SingletonPlugin):
         token = toolkit.config.get('ckanext.gitdatahub.access_token')
         try:
             client = CKANGitClient(token, pkg_dict)
-            lfspointer_name = resource_dict['id'] + '.' + resource_dict['format']
-            client.delete_lfspointerfile(lfspointer_name)
+            client.delete_lfspointerfile(resource_dict)
         except Exception as e:
             log.exception('Cannot delete {} lfspointerfile.'.format(resource_dict['name']))
 

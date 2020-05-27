@@ -1,7 +1,7 @@
 import json
 import logging
 from github import Github, UnknownObjectException
-from ckanapi.datapackage import dataset_to_datapackage
+import ckan_datapackage_tools.converter as converter
 
 log = logging.getLogger(__name__)
 
@@ -20,14 +20,13 @@ class CKANGitClient:
     def get_or_create_repo(self, name, notes):
         try:
             repo = self.auth_user.get_repo(name)
-
         except UnknownObjectException as e:
             repo = self.auth_user.create_repo(name, notes)
 
         return repo
 
     def create_datapackage(self):
-        body = dataset_to_datapackage(self.pkg_dict)
+        body = converter.dataset_to_datapackage(self.pkg_dict)
         self.repo.create_file(
             'datapackage.json',
             'Create datapackage.json',
@@ -51,7 +50,7 @@ class CKANGitClient:
 
     def update_datapackage(self):
         contents = self.repo.get_contents("datapackage.json")
-        body = dataset_to_datapackage(self.pkg_dict)
+        body = converter.dataset_to_datapackage(self.pkg_dict)
         self.repo.update_file(
             contents.path,
             "Update datapackage.json",
@@ -59,49 +58,45 @@ class CKANGitClient:
             contents.sha
             )
 
-    def create_or_update_lfspointerfile(self):
-        try:
-            # TODO: Refactor this using LFSPointer objects
-            lfs_pointers = [obj.name for obj in self.repo.get_contents("data")]
-            lfs_pointers = {obj:self.get_sha256(obj) for obj in lfs_pointers}
+    def create_lfspointerfile(self, resource_obj):
+        sha256 = resource_obj['sha256']
+        size = resource_obj['size']
+        lfs_pointer_body = 'version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(sha256, size)
 
+        try:
+            lfs_pointers = [obj.name for obj in self.repo.get_contents("data")]
         except UnknownObjectException as e:
             lfs_pointers = dict()
 
-        for obj in self.pkg_dict['resources']:
-            lfspointer_name = obj['id'] + '.' + obj['format']
+        if resource_obj['name'] not in lfs_pointers:
+            lfspointer_name = resource_obj['name']
 
-            if obj['url_type'] == 'upload':
-                if lfspointer_name not in lfs_pointers.keys():
-                    self.create_lfspointerfile(obj)
-
-                elif obj['sha256'] != lfs_pointers[lfspointer_name]:
-                    self.update_lfspointerfile(obj)
-
-    def get_sha256(self, lfspointer_name):
-        file_path = "data/{}".format(lfspointer_name)
-        file_content = self.repo.get_contents(file_path).decoded_content
-        return str(file_content).split('\n')[1].split(':')[-1]
-
-    def create_lfspointerfile(self, obj):
-        sha256 = obj['sha256']
-        size = obj['size']
-        lfs_pointer_body = 'version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(sha256, size)
-        lfspointer_name = obj['id'] + '.' + obj['format']
+        elif resource_obj['id'] + '.' + resource_obj['format'] not in lfs_pointers:
+            lfspointer_name = resource_obj['id'] + '.' + resource_obj['format']
 
         self.repo.create_file(
-        "data/{}".format(lfspointer_name),
-        "Create LfsPointerFile",
-        lfs_pointer_body,
-        )
+            "data/{}".format(lfspointer_name),
+            "Create LfsPointerFile",
+            lfs_pointer_body,
+            )
 
-    def update_lfspointerfile(self, obj):
-        lfspointer_name = obj['id'] + '.' + obj['format']
-        contents = self.repo.get_contents("data/{}".format(lfspointer_name))
-        sha256 = obj['sha256']
-        size = obj['size']
+    def update_lfspointerfile(self, resource_obj):
+        sha256 = resource_obj['sha256']
+        size = resource_obj['size']
         lfs_pointer_body = 'version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(sha256, size)
 
+        try:
+            lfs_pointers = [obj.name for obj in self.repo.get_contents("data")]
+        except UnknownObjectException as e:
+            lfs_pointers = dict()
+
+        if resource_obj['name'] in lfs_pointers:
+            lfspointer_name = resource_obj['name']
+
+        elif resource_obj['id'] + '.' + resource_obj['format'] in lfs_pointers:
+            lfspointer_name = resource_obj['id'] + '.' + resource_obj['format']
+
+        contents = self.repo.get_contents("data/{}".format(lfspointer_name))
         self.repo.update_file(
             contents.path,
             "Update LfsPointerFile",
@@ -109,7 +104,18 @@ class CKANGitClient:
             contents.sha
             )
 
-    def delete_lfspointerfile(self, lfspointer_name):
+    def delete_lfspointerfile(self, resource_obj):
+        try:
+            lfs_pointers = [obj.name for obj in self.repo.get_contents("data")]
+        except UnknownObjectException as e:
+            lfs_pointers = dict()
+
+        if resource_obj['id'] + '.' + resource_obj['format'] in lfs_pointers:
+            lfspointer_name = resource_obj['id'] + '.' + resource_obj['format']
+
+        elif resource_obj['name'] in lfs_pointers:
+            lfspointer_name = resource_obj['name']
+
         try:
             contents = self.repo.get_contents("data/{}".format(lfspointer_name))
             self.repo.delete_file(
@@ -125,7 +131,6 @@ class CKANGitClient:
     def check_after_delete(self, resources):
         try:
             contents = self.repo.get_contents("data/")
-
         except UnknownObjectException as e:
             contents = []
 
@@ -142,6 +147,5 @@ class CKANGitClient:
             self.repo.delete()
             log.info("{} repository deleted.".format(self.repo.name))
             return True
-
         except Exception as e:
             return False

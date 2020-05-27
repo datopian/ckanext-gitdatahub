@@ -1,9 +1,8 @@
 import json
 import datetime
-from ckanapi.datapackage import dataset_to_datapackage
 from src.ckan_to_git import CKANGitClient
 import ckan.plugins.toolkit as toolkit
-
+import ckan_datapackage_tools.converter as converter
 from github import Github
 
 
@@ -23,7 +22,7 @@ class Test:
     def test_create_datapackage(self):
         client.create_datapackage()
 
-        body = dataset_to_datapackage(pkg_dict)
+        body = converter.dataset_to_datapackage(pkg_dict)
         repo_file_contents = client.repo.get_contents("datapackage.json").decoded_content
         datapackage_body = bytes(json.dumps(body, indent=2), 'UTF-8')
 
@@ -54,7 +53,7 @@ class Test:
                 'id': 'cc82cc39-3e66-4f77-bb34-fc90566fc612', 'size': 1024, 'sha256': '1234'}
         client.create_lfspointerfile(obj)
 
-        lfspointer_name = obj['id'] + '.' + obj['format']
+        lfspointer_name = obj['name']
         repo_file_contents = client.repo.get_contents("data/{}".format(lfspointer_name)).decoded_content
         lfs_pointer_body = bytes('version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(obj['sha256'], obj['size']), 'UTF-8')
 
@@ -67,7 +66,7 @@ class Test:
                 'id': 'cc82cc39-3e66-4f77-bb34-fc90566fc612', 'size': 1024, 'sha256': '4321'}
         client.update_lfspointerfile(obj)
 
-        lfspointer_name = obj['id'] + '.' + obj['format']
+        lfspointer_name = obj['name']
         repo_file_contents = client.repo.get_contents("data/{}".format(lfspointer_name)).decoded_content
         lfs_pointer_body = bytes('version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(obj['sha256'], obj['size']), 'UTF-8')
 
@@ -76,7 +75,7 @@ class Test:
     def test_update_datapackage(self):
         client.update_datapackage()
 
-        body = dataset_to_datapackage(pkg_dict)
+        body = converter.dataset_to_datapackage(pkg_dict)
         repo_file_contents = client.repo.get_contents("datapackage.json").decoded_content
         datapackage_body = bytes(json.dumps(body, indent=2), 'UTF-8')
 
@@ -95,9 +94,9 @@ class Test:
                 'format': 'CSV', 'url': 'testing_resource.csv', 'name': 'testing_resource.csv', 'package_id': 'cee102b6-9e67-41b2-9558-46c9fe8fbe34',
                 'last_modified': datetime.datetime(2020, 4, 19, 12, 15, 48, 33024), 'url_type': 'upload',
                 'id': 'cc82cc39-3e66-4f77-bb34-fc90566fc612', 'size': 1024, 'sha256': '1234'}
-        lfspointer_name = obj['id'] + '.' + obj['format']
+        lfspointer_name = obj['name']
 
-        assert client.delete_lfspointerfile(lfspointer_name) == True
+        assert client.delete_lfspointerfile(obj) == True
 
     def test_check_after_successful_deletion(self):
         resources = [{'mimetype': 'text/csv', 'description': '',
@@ -109,4 +108,3 @@ class Test:
 
     def test_delete_repo(self):
         assert client.delete_repo() == True
-
