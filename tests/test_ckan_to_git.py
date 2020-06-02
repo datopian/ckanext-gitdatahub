@@ -47,19 +47,27 @@ class Test:
         assert repo_file_contents == lfsconfig_body
 
     def test_create_lfspointerfile(self):
-        obj = {'name': 'testing_resource.csv', 'size': 1024, 'sha256': '1234'}
+        obj = {'mimetype': 'text/csv', 'description': '',
+                'format': 'CSV', 'url': 'testing_resource.csv', 'name': 'testing_resource.csv', 'package_id': 'cee102b6-9e67-41b2-9558-46c9fe8fbe34',
+                'last_modified': datetime.datetime(2020, 4, 19, 12, 15, 48, 33024), 'url_type': 'upload',
+                'id': 'cc82cc39-3e66-4f77-bb34-fc90566fc612', 'size': 1024, 'sha256': '1234'}
         client.create_lfspointerfile(obj)
 
-        repo_file_contents = client.repo.get_contents("data/testing_resource.csv").decoded_content
+        lfspointer_name = obj['name']
+        repo_file_contents = client.repo.get_contents("data/{}".format(lfspointer_name)).decoded_content
         lfs_pointer_body = bytes('version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(obj['sha256'], obj['size']), 'UTF-8')
 
         assert repo_file_contents == lfs_pointer_body
 
     def test_update_lfspointerfile(self):
-        obj = {'name': 'testing_resource.csv', 'size': 1024, 'sha256': '4321'}
+        obj = {'mimetype': 'text/csv', 'description': '',
+                'format': 'CSV', 'url': 'testing_resource.csv', 'name': 'testing_resource.csv', 'package_id': 'cee102b6-9e67-41b2-9558-46c9fe8fbe34',
+                'last_modified': datetime.datetime(2020, 4, 19, 12, 15, 48, 33024), 'url_type': 'upload',
+                'id': 'cc82cc39-3e66-4f77-bb34-fc90566fc612', 'size': 1024, 'sha256': '4321'}
         client.update_lfspointerfile(obj)
 
-        repo_file_contents = client.repo.get_contents("data/testing_resource.csv").decoded_content
+        lfspointer_name = obj['name']
+        repo_file_contents = client.repo.get_contents("data/{}".format(lfspointer_name)).decoded_content
         lfs_pointer_body = bytes('version https://git-lfs.github.com/spec/v1\noid sha256:{}\nsize {}\n'.format(obj['sha256'], obj['size']), 'UTF-8')
 
         assert repo_file_contents == lfs_pointer_body
@@ -82,7 +90,13 @@ class Test:
         assert client.check_after_delete(resources) == False
 
     def test_delete_lfspointerfile(self):
-        assert client.delete_lfspointerfile('testing_resource.csv') == True
+        obj = {'mimetype': 'text/csv', 'description': '',
+                'format': 'CSV', 'url': 'testing_resource.csv', 'name': 'testing_resource.csv', 'package_id': 'cee102b6-9e67-41b2-9558-46c9fe8fbe34',
+                'last_modified': datetime.datetime(2020, 4, 19, 12, 15, 48, 33024), 'url_type': 'upload',
+                'id': 'cc82cc39-3e66-4f77-bb34-fc90566fc612', 'size': 1024, 'sha256': '1234'}
+        lfspointer_name = obj['name']
+
+        assert client.delete_lfspointerfile(obj) == True
 
     def test_check_after_successful_deletion(self):
         resources = [{'mimetype': 'text/csv', 'description': '',
@@ -94,4 +108,3 @@ class Test:
 
     def test_delete_repo(self):
         assert client.delete_repo() == True
-
